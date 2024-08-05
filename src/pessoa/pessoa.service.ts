@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePessoaDto } from './dto/create-pessoa.dto';
 import { UpdatePessoaDto } from './dto/update-pessoa.dto';
 
@@ -18,12 +18,18 @@ export class PessoaService {
   }
 
   async findOne(id: number) {
-    return this.prisma.pessoa.findUnique({
-      where: { id },
-    });
+    const pessoa = await this.prisma.pessoa.findUnique({ where: { id } });
+    if (!pessoa) {
+      throw new NotFoundException('Pessoa não encontrada.');
+    }
+    return pessoa;
   }
 
   async update(id: number, updatePessoaDto: UpdatePessoaDto) {
+    const pessoa = await this.prisma.pessoa.findUnique({ where: { id } });
+    if (!pessoa) {
+      throw new NotFoundException('Pessoa não encontrada.');
+    }
     return this.prisma.pessoa.update({
       where: { id },
       data: updatePessoaDto,
@@ -31,8 +37,10 @@ export class PessoaService {
   }
 
   async remove(id: number) {
-    return this.prisma.pessoa.delete({
-      where: { id },
-    });
+    const pessoa = await this.prisma.pessoa.findUnique({ where: { id } });
+    if (!pessoa) {
+      throw new NotFoundException('Pessoa não encontrada.');
+    }
+    await this.prisma.pessoa.delete({ where: { id } });
   }
 }

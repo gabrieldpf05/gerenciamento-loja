@@ -18,20 +18,20 @@ describe('PessoaController (e2e)', () => {
   it('/pessoas (POST)', () => {
     return request(app.getHttpServer())
       .post('/pessoas')
-      .send({ nome: 'João Silva', cpf: '00000000000', email: 'joao.silva@example.com' })
+      .send({
+        nome: 'João Silva',
+        cpf: '00000000000',
+        email: 'joao.silva@example.com',
+      })
       .expect(201);
   });
 
   it('/pessoas (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/pessoas')
-      .expect(200);
+    return request(app.getHttpServer()).get('/pessoas').expect(200);
   });
 
   it('/pessoas/:cpf (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/pessoas/00000000000')
-      .expect(200);
+    return request(app.getHttpServer()).get('/pessoas/00000000000').expect(200);
   });
 
   it('/pessoas/:cpf (PUT)', () => {
