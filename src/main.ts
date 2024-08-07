@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Configurações do Swagger
   const config = new DocumentBuilder()
     .setTitle('API de Cadastro de Pessoa Física')
     .setDescription('Documentação da API de Cadastro de Pessoa Física')
@@ -13,6 +14,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
+  // Inicia o aplicativo na porta 3000
   await app.listen(3000);
 }
 bootstrap();
