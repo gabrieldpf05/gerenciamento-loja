@@ -1,4 +1,9 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreatePessoaDto } from './create-pessoa.dto';
+import { z } from 'zod';
 
-export class UpdatePessoaDto extends PartialType(CreatePessoaDto) {}
+export const UpdatePessoaSchema = z.object({
+  nome: z.string().optional(),
+  email: z.string().email('Email inválido').optional(),
+  cpf: z.string().regex(/^\d{11}$/, 'CPF deve conter 11 dígitos').optional(),
+});
+
+export type UpdatePessoaDto = z.infer<typeof UpdatePessoaSchema>;

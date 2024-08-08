@@ -1,16 +1,24 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePessoaDto } from './dto/create-pessoa.dto';
 import { UpdatePessoaDto } from './dto/update-pessoa.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PessoaService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createPessoaDto: CreatePessoaDto) {
-    return this.prisma.pessoa.create({
-      data: createPessoaDto,
+    const { nome, email, cpf } = createPessoaDto;
+
+    const pessoa = await this.prisma.pessoa.create({
+      data: {
+        nome,
+        email,
+        cpf,
+      } as Prisma.PessoaCreateInput, 
     });
+    return pessoa;
   }
 
   async findAll() {
@@ -18,18 +26,12 @@ export class PessoaService {
   }
 
   async findOne(id: number) {
-    const pessoa = await this.prisma.pessoa.findUnique({ where: { id } });
-    if (!pessoa) {
-      throw new NotFoundException('Pessoa não encontrada.');
-    }
-    return pessoa;
+    return this.prisma.pessoa.findUnique({
+      where: { id },
+    });
   }
 
   async update(id: number, updatePessoaDto: UpdatePessoaDto) {
-    const pessoa = await this.prisma.pessoa.findUnique({ where: { id } });
-    if (!pessoa) {
-      throw new NotFoundException('Pessoa não encontrada.');
-    }
     return this.prisma.pessoa.update({
       where: { id },
       data: updatePessoaDto,
@@ -37,10 +39,8 @@ export class PessoaService {
   }
 
   async remove(id: number) {
-    const pessoa = await this.prisma.pessoa.findUnique({ where: { id } });
-    if (!pessoa) {
-      throw new NotFoundException('Pessoa não encontrada.');
-    }
-    await this.prisma.pessoa.delete({ where: { id } });
+    return this.prisma.pessoa.delete({
+      where: { id },
+    });
   }
 }

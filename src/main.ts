@@ -1,20 +1,20 @@
-import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NestFactory } from '@nestjs/core'; 
 import { AppModule } from './app.module';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Configurações do Swagger
   const config = new DocumentBuilder()
-    .setTitle('API de Cadastro de Pessoa Física')
-    .setDescription('Documentação da API de Cadastro de Pessoa Física')
+    .setTitle('API Example')
+    .setDescription('The example API description')
     .setVersion('1.0')
+    .addTag('example')
     .build();
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  // Inicia o aplicativo na porta 3000
   await app.listen(3000);
 }
 bootstrap();
