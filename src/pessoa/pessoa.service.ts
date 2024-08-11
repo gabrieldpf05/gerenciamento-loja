@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePessoaDto } from './dto/create-pessoa.dto';
 import { UpdatePessoaDto } from './dto/update-pessoa.dto';
@@ -11,14 +11,26 @@ export class PessoaService {
   async create(createPessoaDto: CreatePessoaDto) {
     const { nome, email, cpf } = createPessoaDto;
 
-    const pessoa = await this.prisma.pessoa.create({
-      data: {
-        nome,
-        email,
-        cpf,
-      } as Prisma.PessoaCreateInput, 
+    const existingPessoa = await this.prisma.pessoa.findUnique({
+      where: { cpf },
     });
-    return pessoa;
+
+    if (existingPessoa) {
+      throw new ConflictException(`CPF ${cpf} já cadastrado.`);
+    }
+
+    try {
+      const pessoa = await this.prisma.pessoa.create({
+        data: {
+          nome,
+          email,
+          cpf,
+        } as Prisma.PessoaCreateInput,
+      });
+      return pessoa;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async findAll() {
@@ -26,12 +38,26 @@ export class PessoaService {
   }
 
   async findOne(id: number) {
-    return this.prisma.pessoa.findUnique({
+    const pessoa = await this.prisma.pessoa.findUnique({
       where: { id },
     });
+
+    if (!pessoa) {
+      throw new NotFoundException(`Pessoa com ID ${id} não encontrada.`);
+    }
+
+    return pessoa;
   }
 
   async update(id: number, updatePessoaDto: UpdatePessoaDto) {
+    const pessoa = await this.prisma.pessoa.findUnique({
+      where: { id },
+    });
+
+    if (!pessoa) {
+      throw new NotFoundException(`Pessoa com ID ${id} não encontrada.`);
+    }
+
     return this.prisma.pessoa.update({
       where: { id },
       data: updatePessoaDto,
@@ -39,6 +65,14 @@ export class PessoaService {
   }
 
   async remove(id: number) {
+    const pessoa = await this.prisma.pessoa.findUnique({
+      where: { id },
+    });
+
+    if (!pessoa) {
+      throw new NotFoundException(`Pessoa com ID ${id} não encontrada.`);
+    }
+
     return this.prisma.pessoa.delete({
       where: { id },
     });
