@@ -4,10 +4,9 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
   const config = new DocumentBuilder()
-    .setTitle('API de Cadastro de Pessoas')
-    .setDescription('API para cadastro e gerenciamento de pessoas')
+    .setTitle('API de Gerenciamento de Lojas')
+    .setDescription('API para gerenciamento de fornecedores e produtos em uma loja')
     .setVersion('1.0')
     .build();
 

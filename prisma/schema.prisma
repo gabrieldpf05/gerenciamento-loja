@@ -13,13 +13,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Pessoa {
-  id        Int      @id @default(autoincrement())
-  nome      String
-  cpf       String   @unique
-  email     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Supplier {
+  id    String   @id @default(uuid())
+  name  String
+  cnpj  String   @unique
+  products Product[]
 }
 
-
+model Product {
+  id         String   @id @default(uuid())
+  name       String
+  code       String   @unique
+  qrcode     String
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+}

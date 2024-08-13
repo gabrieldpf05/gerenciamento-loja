@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
 
-describe('PessoaController (e2e)', () => {
+describe('Store Management API (e2e)', () => {
   let app: INestApplication;
 
   beforeEach(async () => {
@@ -15,35 +15,71 @@ describe('PessoaController (e2e)', () => {
     await app.init();
   });
 
-  it('/pessoas (POST)', () => {
+  // Supplier Endpoints
+
+  it('/suppliers (POST)', () => {
     return request(app.getHttpServer())
-      .post('/pessoas')
-      .send({ nome: 'João Silva', cpf: '00000000000', email: 'joao.silva@example.com' })
+      .post('/suppliers')
+      .send({ name: 'Fornecedor ABC', cnpj: '12345678000195' })
       .expect(201);
   });
 
-  it('/pessoas (GET)', () => {
+  it('/suppliers (GET)', () => {
     return request(app.getHttpServer())
-      .get('/pessoas')
+      .get('/suppliers')
       .expect(200);
   });
 
-  it('/pessoas/:cpf (GET)', () => {
+  it('/suppliers/:id (GET)', () => {
     return request(app.getHttpServer())
-      .get('/pessoas/00000000000')
+      .get('/suppliers/1') // Use a valid ID or set up a fixture to insert a supplier before this test
       .expect(200);
   });
 
-  it('/pessoas/:cpf (PUT)', () => {
+  it('/suppliers/:id (PUT)', () => {
     return request(app.getHttpServer())
-      .put('/pessoas/00000000000')
-      .send({ nome: 'João Silva Atualizado' })
+      .put('/suppliers/1') // Use a valid ID or set up a fixture to insert a supplier before this test
+      .send({ name: 'Fornecedor Atualizado' })
       .expect(200);
   });
 
-  it('/pessoas/:cpf (DELETE)', () => {
+  it('/suppliers/:id (DELETE)', () => {
     return request(app.getHttpServer())
-      .delete('/pessoas/00000000000')
+      .delete('/suppliers/1') // Use a valid ID or set up a fixture to insert a supplier before this test
+      .expect(200);
+  });
+
+  // Product Endpoints
+
+  it('/products (POST)', () => {
+    return request(app.getHttpServer())
+      .post('/products')
+      .send({ name: 'Produto XYZ', code: 'XYZ123', supplierId: '1' }) // Use a valid supplierId
+      .expect(201);
+  });
+
+  it('/products (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/products')
+      .expect(200);
+  });
+
+  it('/products/:id (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/products/1') // Use a valid ID or set up a fixture to insert a product before this test
+      .expect(200);
+  });
+
+  it('/products/:id (PUT)', () => {
+    return request(app.getHttpServer())
+      .put('/products/1') // Use a valid ID or set up a fixture to insert a product before this test
+      .send({ name: 'Produto Atualizado' })
+      .expect(200);
+  });
+
+  it('/products/:id (DELETE)', () => {
+    return request(app.getHttpServer())
+      .delete('/products/1') // Use a valid ID or set up a fixture to insert a product before this test
       .expect(200);
   });
 });
