@@ -1,50 +1,60 @@
 import { PrismaClient } from '@prisma/client';
-import { generateQRCode } from '../src/utils/qr-code';
+import { z } from 'zod';
+import { validateCNPJ } from '../src/common/utils/cnpj-validator';
+
 const prisma = new PrismaClient();
 
+
+const ensureUniqueCNPJ = async (cnpj: string) => {
+  if (!validateCNPJ(cnpj)) {
+    throw new Error('CNPJ inválido.');
+  }
+  const existingSupplier = await prisma.supplier.findUnique({ where: { cnpj } });
+  if (existingSupplier) {
+    throw new Error('CNPJ já cadastrado.');
+  }
+};
+
 async function main() {
-  const fornecedor1 = await prisma.fornecedor.upsert({
-    where: { cnpj: '12345678000195' },
-    update: {},
-    create: {
-      nome: 'Fornecedor A',
+  
+  const supplier1 = await prisma.supplier.create({
+    data: {
       cnpj: '12345678000195',
+      name: 'Fornecedor X',
     },
   });
 
-  const fornecedor2 = await prisma.fornecedor.upsert({
-    where: { cnpj: '98765432000100' },
-    update: {},
-    create: {
-      nome: 'Fornecedor B',
-      cnpj: '98765432000100',
-    },
-  });
-  const produto1 = await prisma.produto.upsert({
-    where: { code: 'PROD001' },
-    update: {},
-    create: {
-      nome: 'Produto 1',
-      code: 'PROD001',
-      qrcode: generateQRCode('PROD001', 'Produto 1', fornecedor1.cnpj),
-      fornecedorId: fornecedor1.id,
+  const supplier2 = await prisma.supplier.create({
+    data: {
+      cnpj: '98765432000198',
+      name: 'Fornecedor Y',
     },
   });
 
-  const produto2 = await prisma.produto.upsert({
-    where: { code: 'PROD002' },
-    update: {},
-    create: {
-      nome: 'Produto 2',
-      code: 'PROD002',
-      qrcode: generateQRCode('PROD002', 'Produto 2', fornecedor2.cnpj),
-      fornecedorId: fornecedor2.id,
+  
+  await prisma.product.create({
+    data: {
+      name: 'Cimento',
+      code: 'CIM123',
+      suppliers: {
+        connect: [{ id: supplier1.id }, { id: supplier2.id }], 
+      },
+    },
+  });
+
+  await prisma.product.create({
+    data: {
+      name: 'Areia',
+      code: 'ARE456',
+      suppliers: {
+        connect: [{ id: supplier1.id }], 
+      },
     },
   });
 }
 
 main()
-  .catch((e) => {
+  .catch(e => {
     console.error(e);
     process.exit(1);
   })

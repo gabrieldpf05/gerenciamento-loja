@@ -4,6 +4,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Prisma } from '@prisma/client';
 import { generateQRCode } from 'src/utils/qrcode';
+import { validateCNPJ } from 'src/utils/cnpj-validator';
 
 @Injectable()
 export class ProductService {
@@ -11,7 +12,6 @@ export class ProductService {
 
   async create(createProductDto: CreateProductDto) {
     const { name, code, supplierId } = createProductDto;
-
     const existingProduct = await this.prisma.product.findUnique({
       where: { code },
     });
@@ -19,7 +19,6 @@ export class ProductService {
     if (existingProduct) {
       throw new ConflictException(`Código de produto ${code} já cadastrado.`);
     }
-
     const supplier = await this.prisma.supplier.findUnique({
       where: { id: supplierId },
     });
@@ -28,6 +27,9 @@ export class ProductService {
       throw new NotFoundException(`Fornecedor com ID ${supplierId} não encontrado.`);
     }
 
+    if (!validateCNPJ(supplier.cnpj)) {
+      throw new ConflictException('CNPJ do fornecedor é inválido.');
+    }
     const qrcode = generateQRCode(code, name, supplier.cnpj);
 
     try {
@@ -71,7 +73,6 @@ export class ProductService {
     if (!product) {
       throw new NotFoundException(`Produto com ID ${id} não encontrado.`);
     }
-
     const supplier = await this.prisma.supplier.findUnique({
       where: { id: supplierId },
     });
@@ -80,6 +81,9 @@ export class ProductService {
       throw new NotFoundException(`Fornecedor com ID ${supplierId} não encontrado.`);
     }
 
+    if (!validateCNPJ(supplier.cnpj)) {
+      throw new ConflictException('CNPJ do fornecedor é inválido.');
+    }
     const qrcode = generateQRCode(code, name, supplier.cnpj);
 
     return this.prisma.product.update({

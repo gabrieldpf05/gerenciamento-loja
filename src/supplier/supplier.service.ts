@@ -1,8 +1,8 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
-import { Prisma } from '@prisma/client';
+import { validateCNPJ } from '.utils/cnpj-validator';
 
 @Injectable()
 export class SupplierService {
@@ -10,6 +10,10 @@ export class SupplierService {
 
   async create(createSupplierDto: CreateSupplierDto) {
     const { name, cnpj } = createSupplierDto;
+
+    if (!validateCNPJ(cnpj)) {
+      throw new ConflictException('CNPJ inválido.');
+    }
 
     const existingSupplier = await this.prisma.supplier.findUnique({
       where: { cnpj },
@@ -20,25 +24,43 @@ export class SupplierService {
     }
 
     try {
-      const supplier = await this.prisma.supplier.create({
-        data: {
-          name,
-          cnpj,
-        } as Prisma.SupplierCreateInput,
+      return await this.prisma.supplier.create({
+        data: { name, cnpj },
       });
-      return supplier;
     } catch (error) {
       throw error;
     }
   }
 
-  async findAll() {
-    return this.prisma.supplier.findMany();
-  }
-
-  async findOne(id: string) {
+  async update(id: number, updateSupplierDto: UpdateSupplierDto) {
     const supplier = await this.prisma.supplier.findUnique({
       where: { id },
+    });
+
+    if (!supplier) {
+      throw new NotFoundException(`Fornecedor com ID ${id} não encontrado.`);
+    }
+
+    if (updateSupplierDto.cnpj && !validateCNPJ(updateSupplierDto.cnpj)) {
+      throw new ConflictException('CNPJ inválido.');
+    }
+
+    return this.prisma.supplier.update({
+      where: { id },
+      data: updateSupplierDto,
+    });
+  }
+
+  async findAll() {
+    return this.prisma.supplier.findMany({
+      include: { products: true },
+    });
+  }
+
+  async findOne(id: number) {
+    const supplier = await this.prisma.supplier.findUnique({
+      where: { id },
+      include: { products: true },
     });
 
     if (!supplier) {
@@ -48,7 +70,7 @@ export class SupplierService {
     return supplier;
   }
 
-  async update(id: string, updateSupplierDto: UpdateSupplierDto) {
+  async remove(id: number) {
     const supplier = await this.prisma.supplier.findUnique({
       where: { id },
     });
@@ -57,22 +79,7 @@ export class SupplierService {
       throw new NotFoundException(`Fornecedor com ID ${id} não encontrado.`);
     }
 
-    return this.prisma.supplier.update({
-      where: { id },
-      data: updateSupplierDto,
-    });
-  }
-
-  async remove(id: string) {
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id },
-    });
-
-    if (!supplier) {
-      throw new NotFoundException(`Fornecedor com ID ${id} não encontrado.`);
-    }
-
-    return this.prisma.supplier.delete({
+    await this.prisma.supplier.delete({
       where: { id },
     });
   }
