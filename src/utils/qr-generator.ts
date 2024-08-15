@@ -1,10 +1,15 @@
 import QRCode from 'qrcode';
 
-export async function generateQRCode(data: string): Promise<string> {
+export async function generateQRCode(
+  code: string,
+  productName: string,
+  supplierCNPJ: string,
+): Promise<string> {
+  const qrData = `Produto: ${productName}\nCódigo: ${code}\nCNPJ do Fornecedor: ${supplierCNPJ}`;
   try {
-    const qrCode = await QRCode.toDataURL(data);
-    return qrCode;
+    const qrCodeUrl = await QRCode.toDataURL(qrData);
+    return qrCodeUrl;
   } catch (error) {
-    throw new Error('Erro ao gerar QR Code.');
+    throw new Error('Erro ao gerar QR Code');
   }
 }

@@ -14,20 +14,25 @@ datasource db {
 }
 
 model Supplier {
-  id        String    @id @default(uuid())
+  id        String                @id @default(uuid())
   name      String
-  cnpj      String   @unique
-  products  Product[] @relation("SupplierProducts")
-
-  @@index([cnpj], name: "Supplier_cnpj_index")
+  cnpj      String                @unique
+  products  SupplierProduct[]
 }
 
 model Product {
-  id        String    @id @default(uuid())
+  id        String                @id @default(uuid())
   name      String
-  code      String   @unique
-  qrcode    String
-  suppliers Supplier[] @relation("SupplierProducts")
+  code      String                @unique
+  suppliers SupplierProduct[]
+}
 
-  @@index([code], name: "Product_code_index")
+model SupplierProduct {
+  supplier   Supplier  @relation(fields: [supplierId], references: [id])
+  supplierId String
+  product    Product   @relation(fields: [productId], references: [id])
+  productId  String
+  qrcode     String
+
+  @@id([supplierId, productId])
 }

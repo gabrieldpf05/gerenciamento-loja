@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
+import { AppModule } from 'src/app.module';
 
 describe('ProductController (e2e)', () => {
   let app: INestApplication;
@@ -24,9 +24,6 @@ describe('ProductController (e2e)', () => {
     expect(response.body).toHaveProperty('name', 'Cimento');
     expect(response.body).toHaveProperty('qrCode');
   });
-
-  // Adicione mais testes conforme necessário
-  
   afterAll(async () => {
     await app.close();
   });

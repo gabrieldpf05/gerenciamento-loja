@@ -1,8 +1,26 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, HttpStatus, UsePipes } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Res,
+  HttpStatus,
+  UsePipes,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { ProductService } from './product.service';
-import { CreateProductDto, CreateProductSchema } from './dto/create-product.dto';
-import { UpdateProductDto, UpdateProductSchema } from './dto/update-product.dto';
+import {
+  CreateProductDto,
+  CreateProductSchema,
+} from 'src/product/dto/create-product.dto';
+import {
+  UpdateProductDto,
+  UpdateProductSchema,
+} from 'src/product/dto/update-product.dto';
+
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
@@ -22,7 +40,10 @@ export class ProductController {
     description: 'Failed to create product.',
   })
   @UsePipes(new ZodValidationPipe(CreateProductSchema))
-  async create(@Body() createProductDto: CreateProductDto, @Res() res: Response) {
+  async create(
+    @Body() createProductDto: CreateProductDto,
+    @Res() res: Response,
+  ) {
     const product = await this.productService.create(createProductDto);
     return res.status(HttpStatus.CREATED).json(product);
   }

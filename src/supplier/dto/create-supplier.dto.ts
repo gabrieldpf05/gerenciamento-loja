@@ -1,86 +1,35 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateSupplierDto } from './dto/create-supplier.dto';
-import { UpdateSupplierDto } from './dto/update-supplier.dto';
-import { validateCNPJ } from '../common/utils/cnpj-validator';
+import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 
-@Injectable()
-export class SupplierService {
-  constructor(private readonly prisma: PrismaService) {}
+export const CreateSupplierSchema = z.object({
+  name: z.string().min(1, 'Nome do fornecedor é obrigatório'),
+  cnpj: z
+    .string()
+    .min(1, 'CNPJ é obrigatório')
+    .length(14, 'CNPJ deve ter 14 caracteres'),
+});
 
-  async create(createSupplierDto: CreateSupplierDto) {
-    const { name, cnpj } = createSupplierDto;
+export class CreateSupplierDto {
+  @ApiProperty({ example: 'Fornecedor A' })
+  name: string;
 
-    if (!validateCNPJ(cnpj)) {
-      throw new ConflictException('CNPJ inválido.');
-    }
+  @ApiProperty({ example: '12345678000195' })
+  cnpj: string;
+}
 
-    const existingSupplier = await this.prisma.supplier.findUnique({
-      where: { cnpj },
-    });
+export const UpdateSupplierSchema = z.object({
+  name: z.string().min(1, 'Nome do fornecedor é obrigatório').optional(),
+  cnpj: z
+    .string()
+    .min(1, 'CNPJ é obrigatório')
+    .length(14, 'CNPJ deve ter 14 caracteres')
+    .optional(),
+});
 
-    if (existingSupplier) {
-      throw new ConflictException(`CNPJ ${cnpj} já cadastrado.`);
-    }
+export class UpdateSupplierDto {
+  @ApiProperty({ example: 'Fornecedor A', required: false })
+  name?: string;
 
-    try {
-      return await this.prisma.supplier.create({
-        data: { name, cnpj },
-      });
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async update(id: number, updateSupplierDto: UpdateSupplierDto) {
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id },
-    });
-
-    if (!supplier) {
-      throw new NotFoundException(`Fornecedor com ID ${id} não encontrado.`);
-    }
-
-    if (updateSupplierDto.cnpj && !validateCNPJ(updateSupplierDto.cnpj)) {
-      throw new ConflictException('CNPJ inválido.');
-    }
-
-    return this.prisma.supplier.update({
-      where: { id },
-      data: updateSupplierDto,
-    });
-  }
-
-  async findAll() {
-    return this.prisma.supplier.findMany({
-      include: { products: true },
-    });
-  }
-
-  async findOne(id: number) {
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id },
-      include: { products: true },
-    });
-
-    if (!supplier) {
-      throw new NotFoundException(`Fornecedor com ID ${id} não encontrado.`);
-    }
-
-    return supplier;
-  }
-
-  async remove(id: number) {
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id },
-    });
-
-    if (!supplier) {
-      throw new NotFoundException(`Fornecedor com ID ${id} não encontrado.`);
-    }
-
-    await this.prisma.supplier.delete({
-      where: { id },
-    });
-  }
+  @ApiProperty({ example: '12345678000195', required: false })
+  cnpj?: string;
 }
