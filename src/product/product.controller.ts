@@ -6,11 +6,10 @@ import {
   Patch,
   Param,
   Delete,
-  Res,
   HttpStatus,
   UsePipes,
+  HttpCode,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { ProductService } from './product.service';
 import {
   CreateProductDto,
@@ -20,7 +19,6 @@ import {
   UpdateProductDto,
   UpdateProductSchema,
 } from 'src/product/dto/update-product.dto';
-
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
@@ -40,20 +38,24 @@ export class ProductController {
     description: 'Failed to create product.',
   })
   @UsePipes(new ZodValidationPipe(CreateProductSchema))
-  async create(
-    @Body() createProductDto: CreateProductDto,
-    @Res() res: Response,
-  ) {
+  async create(@Body() createProductDto: CreateProductDto) {
     const product = await this.productService.create(createProductDto);
-    return res.status(HttpStatus.CREATED).json(product);
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Product successfully created.',
+      data: product,
+    };
   }
 
   @Get()
   @ApiOperation({ summary: 'Get a list of all products' })
   @ApiResponse({ status: HttpStatus.OK, description: 'List of products.' })
-  async findAll(@Res() res: Response) {
+  async findAll() {
     const products = await this.productService.findAll();
-    return res.status(HttpStatus.OK).json(products);
+    return {
+      statusCode: HttpStatus.OK,
+      data: products,
+    };
   }
 
   @Get(':id')
@@ -63,15 +65,18 @@ export class ProductController {
     status: HttpStatus.NOT_FOUND,
     description: 'Product not found.',
   })
-  async findOne(@Param('id') id: string, @Res() res: Response) {
+  async findOne(@Param('id') id: string) {
     const product = await this.productService.findOne(id);
     if (!product) {
-      return res.status(HttpStatus.NOT_FOUND).json({
+      return {
         statusCode: HttpStatus.NOT_FOUND,
         message: 'Product not found.',
-      });
+      };
     }
-    return res.status(HttpStatus.OK).json(product);
+    return {
+      statusCode: HttpStatus.OK,
+      data: product,
+    };
   }
 
   @Patch(':id')
@@ -88,26 +93,29 @@ export class ProductController {
   async update(
     @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
-    @Res() res: Response,
   ) {
     const product = await this.productService.update(id, updateProductDto);
     if (!product) {
-      return res.status(HttpStatus.NOT_FOUND).json({
+      return {
         statusCode: HttpStatus.NOT_FOUND,
         message: 'Product not found.',
-      });
+      };
     }
-    return res.status(HttpStatus.OK).json(product);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Product successfully updated.',
+      data: product,
+    };
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a product' })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
     description: 'Product successfully deleted.',
   })
-  async remove(@Param('id') id: string, @Res() res: Response) {
+  async remove(@Param('id') id: string) {
     await this.productService.remove(id);
-    return res.status(HttpStatus.NO_CONTENT).json();
   }
 }

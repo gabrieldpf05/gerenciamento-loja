@@ -8,12 +8,20 @@ import {
   Get,
   Res,
   HttpStatus,
+  UsePipes,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { SupplierService } from './supplier.service';
-import { CreateSupplierDto } from './dto/create-supplier.dto';
-import { UpdateSupplierDto } from './dto/update-supplier.dto';
+import {
+  CreateSupplierDto,
+  CreateSupplierSchema,
+} from './dto/create-supplier.dto';
+import {
+  UpdateSupplierDto,
+  UpdateSupplierSchema,
+} from './dto/update-supplier.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ZodValidationPipe } from 'nestjs-zod';
 
 @ApiTags('suppliers')
 @Controller('suppliers')
@@ -30,6 +38,7 @@ export class SupplierController {
     status: HttpStatus.CONFLICT,
     description: 'Invalid or duplicate CNPJ.',
   })
+  @UsePipes(new ZodValidationPipe(CreateSupplierSchema))
   async create(
     @Body() createSupplierDto: CreateSupplierDto,
     @Res() res: Response,
@@ -58,6 +67,7 @@ export class SupplierController {
     status: HttpStatus.CONFLICT,
     description: 'Invalid or duplicate CNPJ.',
   })
+  @UsePipes(new ZodValidationPipe(UpdateSupplierSchema))
   async update(
     @Param('id') id: string,
     @Body() updateSupplierDto: UpdateSupplierDto,
@@ -126,6 +136,12 @@ export class SupplierController {
   async findOne(@Param('id') id: string, @Res() res: Response) {
     try {
       const supplier = await this.supplierService.findOne(id);
+      if (!supplier) {
+        return res.status(HttpStatus.NOT_FOUND).json({
+          statusCode: HttpStatus.NOT_FOUND,
+          message: 'Supplier not found.',
+        });
+      }
       return res.status(HttpStatus.OK).json(supplier);
     } catch (error) {
       return res

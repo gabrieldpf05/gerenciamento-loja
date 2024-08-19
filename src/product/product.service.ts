@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from 'src/product/dto/update-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { Prisma } from '@prisma/client';
 import { generateQRCode } from 'src/utils/qr-generator';
 import { validateCNPJ } from 'src/utils/cnpj-validator';
@@ -15,7 +15,7 @@ export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createProductDto: CreateProductDto) {
-    const { name, code, supplierId } = createProductDto;
+    const { name, code, supplierIds } = createProductDto;
 
     const existingProduct = await this.prisma.product.findUnique({
       where: { code },
@@ -25,41 +25,64 @@ export class ProductService {
       throw new ConflictException(`Código de produto ${code} já cadastrado.`);
     }
 
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id: supplierId },
-    });
+    return this.prisma.$transaction(async (prisma) => {
+      const product = await prisma.product.create({
+        data: {
+          name,
+          code,
+        } as Prisma.ProductCreateInput,
+      });
 
-    if (!supplier) {
-      throw new NotFoundException(
-        `Fornecedor com ID ${supplierId} não encontrado.`,
+      const supplierConnections = await Promise.all(
+        supplierIds.map(async (supplierId) => {
+          const supplier = await prisma.supplier.findUnique({
+            where: { id: supplierId },
+          });
+
+          if (!supplier) {
+            throw new NotFoundException(
+              `Fornecedor com ID ${supplierId} não encontrado.`,
+            );
+          }
+
+          if (!validateCNPJ(supplier.cnpj)) {
+            throw new ConflictException(
+              `CNPJ do fornecedor ${supplier.cnpj} é inválido.`,
+            );
+          }
+
+          const qrcode = await generateQRCode(code, name, supplier.cnpj);
+
+          return prisma.supplierProduct.create({
+            data: {
+              supplierId: supplier.id,
+              productId: product.id,
+              qrcode,
+            },
+          });
+        }),
       );
-    }
 
-    if (!validateCNPJ(supplier.cnpj)) {
-      throw new ConflictException('CNPJ do fornecedor é inválido.');
-    }
+      await Promise.all(supplierConnections);
 
-    const qrcode = await generateQRCode(code, name, supplier.cnpj);
-
-    return this.prisma.product.create({
-      data: {
-        name,
-        code,
-        qrcode,
-        suppliers: {
-          connect: { id: supplierId },
-        },
-      },
+      return product;
     });
   }
 
   async findAll() {
-    return this.prisma.product.findMany();
+    return this.prisma.product.findMany({
+      include: {
+        suppliers: true,
+      },
+    });
   }
 
   async findOne(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
+      include: {
+        suppliers: true,
+      },
     });
 
     if (!product) {
@@ -70,41 +93,64 @@ export class ProductService {
   }
 
   async update(id: string, updateProductDto: UpdateProductDto) {
-    const { code, name, supplierId } = updateProductDto;
+    const { code, name, supplierIds } = updateProductDto;
 
-    const product = await this.prisma.product.findUnique({
+    const existingProduct = await this.prisma.product.findUnique({
       where: { id },
     });
 
-    if (!product) {
+    if (!existingProduct) {
       throw new NotFoundException(`Produto com ID ${id} não encontrado.`);
     }
 
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id: supplierId },
-    });
+    return this.prisma.$transaction(async (prisma) => {
+      const updatedProduct = await prisma.product.update({
+        where: { id },
+        data: {
+          name,
+          code,
+        },
+      });
 
-    if (!supplier) {
-      throw new NotFoundException(
-        `Fornecedor com ID ${supplierId} não encontrado.`,
+      await prisma.supplierProduct.deleteMany({
+        where: {
+          productId: id,
+        },
+      });
+
+      const supplierConnections = await Promise.all(
+        supplierIds.map(async (supplierId) => {
+          const supplier = await prisma.supplier.findUnique({
+            where: { id: supplierId },
+          });
+
+          if (!supplier) {
+            throw new NotFoundException(
+              `Fornecedor com ID ${supplierId} não encontrado.`,
+            );
+          }
+
+          if (!validateCNPJ(supplier.cnpj)) {
+            throw new ConflictException(
+              `CNPJ do fornecedor ${supplier.cnpj} é inválido.`,
+            );
+          }
+
+          const qrcode = await generateQRCode(code, name, supplier.cnpj);
+
+          return prisma.supplierProduct.create({
+            data: {
+              supplierId: supplier.id,
+              productId: updatedProduct.id,
+              qrcode,
+            },
+          });
+        }),
       );
-    }
 
-    if (!validateCNPJ(supplier.cnpj)) {
-      throw new ConflictException('CNPJ do fornecedor é inválido.');
-    }
+      await Promise.all(supplierConnections);
 
-    const qrcode =
-      code && name && supplier.cnpj
-        ? await generateQRCode(code, name, supplier.cnpj)
-        : product.qrcode;
-
-    return this.prisma.product.update({
-      where: { id },
-      data: {
-        ...updateProductDto,
-        qrcode,
-      },
+      return updatedProduct;
     });
   }
 
@@ -117,8 +163,16 @@ export class ProductService {
       throw new NotFoundException(`Produto com ID ${id} não encontrado.`);
     }
 
-    return this.prisma.product.delete({
-      where: { id },
+    return this.prisma.$transaction(async (prisma) => {
+      await prisma.supplierProduct.deleteMany({
+        where: {
+          productId: id,
+        },
+      });
+
+      return prisma.product.delete({
+        where: { id },
+      });
     });
   }
 }
