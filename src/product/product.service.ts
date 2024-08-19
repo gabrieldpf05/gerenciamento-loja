@@ -6,9 +6,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { Prisma } from '@prisma/client';
 import { generateQRCode } from 'src/utils/qr-generator';
-import { validateCNPJ } from 'src/utils/cnpj-validator';
 
 @Injectable()
 export class ProductService {
@@ -30,10 +28,15 @@ export class ProductService {
         data: {
           name,
           code,
-        } as Prisma.ProductCreateInput,
+          suppliers: {
+            connect: supplierIds.map((id) => ({
+              supplierId_productId: { supplierId: id, productId: product.id },
+            })),
+          },
+        },
       });
 
-      const supplierConnections = await Promise.all(
+      await Promise.all(
         supplierIds.map(async (supplierId) => {
           const supplier = await prisma.supplier.findUnique({
             where: { id: supplierId },
@@ -45,15 +48,9 @@ export class ProductService {
             );
           }
 
-          if (!validateCNPJ(supplier.cnpj)) {
-            throw new ConflictException(
-              `CNPJ do fornecedor ${supplier.cnpj} é inválido.`,
-            );
-          }
-
           const qrcode = await generateQRCode(code, name, supplier.cnpj);
 
-          return prisma.supplierProduct.create({
+          await prisma.supplierProduct.create({
             data: {
               supplierId: supplier.id,
               productId: product.id,
@@ -62,8 +59,6 @@ export class ProductService {
           });
         }),
       );
-
-      await Promise.all(supplierConnections);
 
       return product;
     });
@@ -118,7 +113,7 @@ export class ProductService {
         },
       });
 
-      const supplierConnections = await Promise.all(
+      await Promise.all(
         supplierIds.map(async (supplierId) => {
           const supplier = await prisma.supplier.findUnique({
             where: { id: supplierId },
@@ -130,15 +125,9 @@ export class ProductService {
             );
           }
 
-          if (!validateCNPJ(supplier.cnpj)) {
-            throw new ConflictException(
-              `CNPJ do fornecedor ${supplier.cnpj} é inválido.`,
-            );
-          }
-
           const qrcode = await generateQRCode(code, name, supplier.cnpj);
 
-          return prisma.supplierProduct.create({
+          await prisma.supplierProduct.create({
             data: {
               supplierId: supplier.id,
               productId: updatedProduct.id,
@@ -147,8 +136,6 @@ export class ProductService {
           });
         }),
       );
-
-      await Promise.all(supplierConnections);
 
       return updatedProduct;
     });

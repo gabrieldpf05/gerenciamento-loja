@@ -3,6 +3,8 @@ export function validateCNPJ(cnpj: string): boolean {
 
   if (cnpj.length !== 14) return false;
 
+  if (/^(\d)\1{13}$/.test(cnpj)) return false;
+
   const calcDigit = (cnpj: string, length: number, multiplier: number) => {
     let sum = 0;
     for (let i = 0; i < length; i++) {

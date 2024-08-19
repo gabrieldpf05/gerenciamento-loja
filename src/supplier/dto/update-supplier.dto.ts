@@ -1,15 +1,14 @@
 import { z } from 'zod';
 import { ApiProperty } from '@nestjs/swagger';
 
-export const UpdateSupplierSchema = z
-  .object({
-    name: z.string().min(1, 'Nome do fornecedor é obrigatório').optional(),
-    cnpj: z
-      .string()
-      .regex(/^\d{14}$/, 'CNPJ deve conter 14 dígitos')
-      .optional(),
-  })
-  .strict();
+export const UpdateSupplierSchema = z.object({
+  name: z.string().min(1, 'Nome do fornecedor é obrigatório').optional(),
+  cnpj: z
+    .string()
+    .length(14, 'CNPJ deve ter 14 caracteres')
+    .refine((value) => validateCNPJ(value), 'CNPJ inválido')
+    .optional(),
+});
 
 export class UpdateSupplierDto {
   @ApiProperty({ example: 'Fornecedor X', required: false })
@@ -18,3 +17,5 @@ export class UpdateSupplierDto {
   @ApiProperty({ example: '12345678000195', required: false })
   cnpj?: string;
 }
+
+import { validateCNPJ } from 'src/utils/cnpj-validator';

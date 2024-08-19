@@ -35,16 +35,32 @@ export class ProductController {
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Failed to create product.',
+    description: 'Failed to create product. Veja https://http.cat/400',
+  })
+  @ApiResponse({
+    status: HttpStatus.PAYLOAD_TOO_LARGE,
+    description: 'Dados de entrada muito grandes. Veja https://http.cat/413',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'Dados de entrada inválidos. Veja https://http.cat/422',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Erro interno do servidor. Veja https://http.cat/500',
   })
   @UsePipes(new ZodValidationPipe(CreateProductSchema))
   async create(@Body() createProductDto: CreateProductDto) {
-    const product = await this.productService.create(createProductDto);
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Product successfully created.',
-      data: product,
-    };
+    try {
+      const product = await this.productService.create(createProductDto);
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Product successfully created.',
+        data: product,
+      };
+    } catch (error) {
+      throw new Error('Erro ao criar o produto. Veja https://http.cat/500');
+    }
   }
 
   @Get()
@@ -63,14 +79,14 @@ export class ProductController {
   @ApiResponse({ status: HttpStatus.OK, description: 'Product found.' })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: 'Product not found.',
+    description: 'Product not found. Veja https://http.cat/404',
   })
   async findOne(@Param('id') id: string) {
     const product = await this.productService.findOne(id);
     if (!product) {
       return {
         statusCode: HttpStatus.NOT_FOUND,
-        message: 'Product not found.',
+        message: 'Product not found. Veja https://http.cat/404',
       };
     }
     return {
@@ -87,25 +103,33 @@ export class ProductController {
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: 'Product not found.',
+    description: 'Product not found. Veja https://http.cat/404',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'Dados de entrada inválidos. Veja https://http.cat/422',
   })
   @UsePipes(new ZodValidationPipe(UpdateProductSchema))
   async update(
     @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
   ) {
-    const product = await this.productService.update(id, updateProductDto);
-    if (!product) {
+    try {
+      const product = await this.productService.update(id, updateProductDto);
+      if (!product) {
+        return {
+          statusCode: HttpStatus.NOT_FOUND,
+          message: 'Product not found. Veja https://http.cat/404',
+        };
+      }
       return {
-        statusCode: HttpStatus.NOT_FOUND,
-        message: 'Product not found.',
+        statusCode: HttpStatus.OK,
+        message: 'Product successfully updated.',
+        data: product,
       };
+    } catch (error) {
+      throw new Error('Erro ao atualizar o produto. Veja https://http.cat/500');
     }
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Product successfully updated.',
-      data: product,
-    };
   }
 
   @Delete(':id')
@@ -115,7 +139,17 @@ export class ProductController {
     status: HttpStatus.NO_CONTENT,
     description: 'Product successfully deleted.',
   })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Product not found. Veja https://http.cat/404',
+  })
   async remove(@Param('id') id: string) {
-    await this.productService.remove(id);
+    const product = await this.productService.remove(id);
+    if (!product) {
+      return {
+        statusCode: HttpStatus.NOT_FOUND,
+        message: 'Product not found. Veja https://http.cat/404',
+      };
+    }
   }
 }

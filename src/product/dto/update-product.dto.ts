@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { ApiProperty } from '@nestjs/swagger';
 
-// Esquema de validação com Zod
 export const UpdateProductSchema = z
   .object({
     name: z.string().min(1, 'Nome do produto é obrigatório').optional(),
@@ -11,6 +10,7 @@ export const UpdateProductSchema = z
       .optional(),
   })
   .strict();
+
 export class UpdateProductDto {
   @ApiProperty({ example: 'Produto A', required: false })
   name?: string;
