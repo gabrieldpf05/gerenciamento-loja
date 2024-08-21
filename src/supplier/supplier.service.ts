@@ -27,8 +27,6 @@ export class SupplierService {
     return this.prisma.supplier.create({
       data: {
         ...createSupplierDto,
-
-        cnpj: createSupplierDto.cnpj,
       },
     });
   }
@@ -41,16 +39,22 @@ export class SupplierService {
       throw new NotFoundException('Fornecedor não encontrado.');
     }
 
-    if (updateSupplierDto.cnpj && !validateCNPJ(updateSupplierDto.cnpj)) {
-      throw new ConflictException('CNPJ inválido.');
+    if (updateSupplierDto.cnpj) {
+      const existingCnpjSupplier = await this.prisma.supplier.findUnique({
+        where: { cnpj: updateSupplierDto.cnpj },
+      });
+      if (existingCnpjSupplier && existingCnpjSupplier.id !== id) {
+        throw new ConflictException('CNPJ já cadastrado.');
+      }
+      if (!validateCNPJ(updateSupplierDto.cnpj)) {
+        throw new ConflictException('CNPJ inválido.');
+      }
     }
 
     return this.prisma.supplier.update({
       where: { id },
       data: {
         ...updateSupplierDto,
-
-        cnpj: updateSupplierDto.cnpj ? updateSupplierDto.cnpj : undefined,
       },
     });
   }

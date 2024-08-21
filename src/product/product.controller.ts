@@ -7,20 +7,18 @@ import {
   Param,
   Delete,
   HttpStatus,
-  UsePipes,
-  HttpCode,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import {
   CreateProductDto,
   CreateProductSchema,
-} from 'src/product/dto/create-product.dto';
+} from './dto/create-product.dto';
 import {
   UpdateProductDto,
   UpdateProductSchema,
-} from 'src/product/dto/update-product.dto';
-import { ZodValidationPipe } from 'nestjs-zod';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+} from './dto/update-product.dto';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
 @ApiTags('products')
 @Controller('products')
@@ -35,21 +33,36 @@ export class ProductController {
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Failed to create product. Veja https://http.cat/400',
+    description: 'Failed to create product.',
   })
   @ApiResponse({
     status: HttpStatus.PAYLOAD_TOO_LARGE,
-    description: 'Dados de entrada muito grandes. Veja https://http.cat/413',
+    description: 'Data too large.',
   })
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
-    description: 'Dados de entrada inválidos. Veja https://http.cat/422',
+    description: 'Unprocessable entity.',
   })
   @ApiResponse({
     status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: 'Erro interno do servidor. Veja https://http.cat/500',
+    description: 'Internal server error.',
   })
-  @UsePipes(new ZodValidationPipe(CreateProductSchema))
+  @ApiBody({
+    description: 'Product creation details',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Product Name' },
+        code: { type: 'string', example: 'CODE001' },
+        supplierIds: {
+          type: 'array',
+          items: { type: 'string', format: 'uuid' },
+          example: ['550e8400-e29b-41d4-a716-446655440000'],
+        },
+      },
+      required: ['name', 'code'],
+    },
+  })
   async create(@Body() createProductDto: CreateProductDto) {
     try {
       const product = await this.productService.create(createProductDto);
@@ -59,97 +72,128 @@ export class ProductController {
         data: product,
       };
     } catch (error) {
-      throw new Error('Erro ao criar o produto. Veja https://http.cat/500');
+      throw new InternalServerErrorException('Error creating product.');
     }
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get a list of all products' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'List of products.' })
+  @ApiOperation({ summary: 'Get all products' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Successfully retrieved products.',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Internal server error.',
+  })
   async findAll() {
-    const products = await this.productService.findAll();
-    return {
-      statusCode: HttpStatus.OK,
-      data: products,
-    };
+    try {
+      const products = await this.productService.findAll();
+      return {
+        statusCode: HttpStatus.OK,
+        data: products,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException('Error fetching products.');
+    }
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a specific product by ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Product found.' })
+  @ApiOperation({ summary: 'Get a single product by ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Successfully retrieved product.',
+  })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: 'Product not found. Veja https://http.cat/404',
+    description: 'Product not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Internal server error.',
   })
   async findOne(@Param('id') id: string) {
-    const product = await this.productService.findOne(id);
-    if (!product) {
+    try {
+      const product = await this.productService.findOne(id);
       return {
-        statusCode: HttpStatus.NOT_FOUND,
-        message: 'Product not found. Veja https://http.cat/404',
+        statusCode: HttpStatus.OK,
+        data: product,
       };
+    } catch (error) {
+      throw new InternalServerErrorException('Error fetching product.');
     }
-    return {
-      statusCode: HttpStatus.OK,
-      data: product,
-    };
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update a product' })
+  @ApiOperation({ summary: 'Update an existing product' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Product successfully updated.',
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: 'Product not found. Veja https://http.cat/404',
+    description: 'Product not found.',
   })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid data.' })
   @ApiResponse({
-    status: HttpStatus.UNPROCESSABLE_ENTITY,
-    description: 'Dados de entrada inválidos. Veja https://http.cat/422',
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Internal server error.',
   })
-  @UsePipes(new ZodValidationPipe(UpdateProductSchema))
+  @ApiBody({
+    description: 'Product update details',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Updated Product Name' },
+        code: { type: 'string', example: 'UPDATED001' },
+        supplierIds: {
+          type: 'array',
+          items: { type: 'string', format: 'uuid' },
+          example: ['550e8400-e29b-41d4-a716-446655440000'],
+        },
+      },
+      required: [],
+    },
+  })
   async update(
     @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
   ) {
     try {
       const product = await this.productService.update(id, updateProductDto);
-      if (!product) {
-        return {
-          statusCode: HttpStatus.NOT_FOUND,
-          message: 'Product not found. Veja https://http.cat/404',
-        };
-      }
       return {
         statusCode: HttpStatus.OK,
         message: 'Product successfully updated.',
         data: product,
       };
     } catch (error) {
-      throw new Error('Erro ao atualizar o produto. Veja https://http.cat/500');
+      throw new InternalServerErrorException('Error updating product.');
     }
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a product' })
+  @ApiOperation({ summary: 'Delete a product by ID' })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
     description: 'Product successfully deleted.',
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: 'Product not found. Veja https://http.cat/404',
+    description: 'Product not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Internal server error.',
   })
   async remove(@Param('id') id: string) {
-    const product = await this.productService.remove(id);
-    if (!product) {
+    try {
+      await this.productService.remove(id);
       return {
-        statusCode: HttpStatus.NOT_FOUND,
-        message: 'Product not found. Veja https://http.cat/404',
+        statusCode: HttpStatus.NO_CONTENT,
+        message: 'Product successfully deleted.',
       };
+    } catch (error) {
+      throw new InternalServerErrorException('Error deleting product.');
     }
   }
 }

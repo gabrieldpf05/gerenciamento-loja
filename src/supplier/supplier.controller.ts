@@ -6,12 +6,10 @@ import {
   Put,
   Delete,
   Get,
-  Res,
   HttpStatus,
   UsePipes,
   HttpCode,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { SupplierService } from './supplier.service';
 import {
   CreateSupplierDto,
@@ -36,31 +34,20 @@ export class SupplierController {
     description: 'Supplier created successfully.',
   })
   @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description: 'Invalid or duplicate CNPJ. Veja https://http.cat/409',
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid data. Veja https://http.cat/400',
   })
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
-    description: 'Dados de entrada inválidos. Veja https://http.cat/422',
-  })
-  @ApiResponse({
-    status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: 'Erro interno do servidor. Veja https://http.cat/500',
+    description: 'Invalid data format. Veja https://http.cat/422',
   })
   @UsePipes(new ZodValidationPipe(CreateSupplierSchema))
-  async create(
-    @Body() createSupplierDto: CreateSupplierDto,
-    @Res() res: Response,
-  ) {
+  async create(@Body() createSupplierDto: CreateSupplierDto) {
     try {
       const supplier = await this.supplierService.create(createSupplierDto);
-      return res.status(HttpStatus.CREATED).json(supplier);
+      return { statusCode: HttpStatus.CREATED, data: supplier };
     } catch (error) {
-      return res.status(error.status || HttpStatus.INTERNAL_SERVER_ERROR).json({
-        message:
-          error.message ||
-          'Erro ao criar o fornecedor. Veja https://http.cat/500',
-      });
+      throw error;
     }
   }
 
@@ -80,27 +67,18 @@ export class SupplierController {
   })
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
-    description: 'Dados de entrada inválidos. Veja https://http.cat/422',
+    description: 'Invalid data format. Veja https://http.cat/422',
   })
-  @ApiResponse({
-    status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: 'Erro interno do servidor. Veja https://http.cat/500',
-  })
-  @UsePipes(new ZodValidationPipe(UpdateSupplierSchema))
   async update(
+    @Body(new ZodValidationPipe(UpdateSupplierSchema))
+    updateSupplierDto: UpdateSupplierDto,
     @Param('id') id: string,
-    @Body() updateSupplierDto: UpdateSupplierDto,
-    @Res() res: Response,
   ) {
     try {
       const supplier = await this.supplierService.update(id, updateSupplierDto);
-      return res.status(HttpStatus.OK).json(supplier);
+      return { statusCode: HttpStatus.OK, data: supplier };
     } catch (error) {
-      return res.status(error.status || HttpStatus.INTERNAL_SERVER_ERROR).json({
-        message:
-          error.message ||
-          'Erro ao atualizar o fornecedor. Veja https://http.cat/500',
-      });
+      throw error;
     }
   }
 
@@ -115,18 +93,11 @@ export class SupplierController {
     status: HttpStatus.NOT_FOUND,
     description: 'Supplier not found. Veja https://http.cat/404',
   })
-  async remove(@Param('id') id: string, @Res() res: Response) {
+  async remove(@Param('id') id: string) {
     try {
       await this.supplierService.remove(id);
-      return res
-        .status(HttpStatus.NO_CONTENT)
-        .json({ message: 'Supplier deleted successfully.' });
     } catch (error) {
-      return res.status(error.status || HttpStatus.INTERNAL_SERVER_ERROR).json({
-        message:
-          error.message ||
-          'Erro ao deletar o fornecedor. Veja https://http.cat/500',
-      });
+      throw error;
     }
   }
 
@@ -138,18 +109,14 @@ export class SupplierController {
   })
   @ApiResponse({
     status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: 'Erro interno do servidor. Veja https://http.cat/500',
+    description: 'Internal server error. Veja https://http.cat/500',
   })
-  async findAll(@Res() res: Response) {
+  async findAll() {
     try {
       const suppliers = await this.supplierService.findAll();
-      return res.status(HttpStatus.OK).json(suppliers);
+      return { statusCode: HttpStatus.OK, data: suppliers };
     } catch (error) {
-      return res.status(error.status || HttpStatus.INTERNAL_SERVER_ERROR).json({
-        message:
-          error.message ||
-          'Erro ao recuperar os fornecedores. Veja https://http.cat/500',
-      });
+      throw error;
     }
   }
 
@@ -165,24 +132,14 @@ export class SupplierController {
   })
   @ApiResponse({
     status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: 'Erro interno do servidor. Veja https://http.cat/500',
+    description: 'Internal server error. Veja https://http.cat/500',
   })
-  async findOne(@Param('id') id: string, @Res() res: Response) {
+  async findOne(@Param('id') id: string) {
     try {
       const supplier = await this.supplierService.findOne(id);
-      if (!supplier) {
-        return res.status(HttpStatus.NOT_FOUND).json({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: 'Supplier not found. Veja https://http.cat/404',
-        });
-      }
-      return res.status(HttpStatus.OK).json(supplier);
+      return { statusCode: HttpStatus.OK, data: supplier };
     } catch (error) {
-      return res.status(error.status || HttpStatus.INTERNAL_SERVER_ERROR).json({
-        message:
-          error.message ||
-          'Erro ao recuperar o fornecedor. Veja https://http.cat/500',
-      });
+      throw error;
     }
   }
 }

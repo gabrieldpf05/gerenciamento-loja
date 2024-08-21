@@ -17,7 +17,10 @@ export class CreateProductDto {
   code: string;
 
   @ApiProperty({
-    example: ['uuid-do-fornecedor1', 'uuid-do-fornecedor2'],
+    example: [
+      'd290f1ee-6c54-4b01-90e6-d701748f0851',
+      'f290f1ee-7d54-4b01-80e6-e701748f0852',
+    ],
     description: 'Lista de UUIDs dos fornecedores',
   })
   supplierIds: string[];
